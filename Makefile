@@ -1,3 +1,3 @@
 .PHONY: default
 default:
-	uv run ./src/cw-envt.py
+	uv run ./src/main.py

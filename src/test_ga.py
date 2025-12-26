@@ -1,4 +1,4 @@
-# If you on a Windows machine with any Python version 
+# If you on a Windows machine with any Python version
 # or an M1 mac with any Python version
 # or an Intel Mac with Python > 3.7
 # this multi-threaded version does not work
@@ -6,26 +6,33 @@
 
 import unittest
 import population
-import simulation 
-import genome 
-import creature 
+import simulation
+import genome
+import creature
 import numpy as np
+
 
 class TestGA(unittest.TestCase):
     def testBasicGA(self):
-        pop = population.Population(pop_size=10, 
-                                    gene_count=3)
-        sim = simulation.ThreadedSim(pool_size=1)
-        #sim = simulation.Simulation()
+        pop = population.Population(pop_size=10, gene_count=3)
+        sim = simulation.ThreadedSim(pool_size=7)
+        # sim = simulation.Simulation()
 
         for iteration in range(1000):
             sim.eval_population(pop, 2400)
-            fits = [cr.get_distance_travelled() 
-                    for cr in pop.creatures]
-            links = [len(cr.get_expanded_links()) 
-                    for cr in pop.creatures]
-            print(iteration, "fittest:", np.round(np.max(fits), 3), 
-                  "mean:", np.round(np.mean(fits), 3), "mean links", np.round(np.mean(links)), "max links", np.round(np.max(links)))       
+            fits = [cr.get_distance_travelled() for cr in pop.creatures]
+            links = [len(cr.get_expanded_links()) for cr in pop.creatures]
+            print(
+                iteration,
+                "fittest:",
+                np.round(np.max(fits), 3),
+                "mean:",
+                np.round(np.mean(fits), 3),
+                "mean links",
+                np.round(np.mean(links)),
+                "max links",
+                np.round(np.max(links)),
+            )
             fit_map = population.Population.get_fitness_map(fits)
             new_creatures = []
             for i in range(len(pop.creatures)):
@@ -48,12 +55,13 @@ class TestGA(unittest.TestCase):
                     new_cr = creature.Creature(1)
                     new_cr.update_dna(cr.dna)
                     new_creatures[0] = new_cr
-                    filename = "elite_"+str(iteration)+".csv"
+                    filename = "elite_" + str(iteration) + ".csv"
                     genome.Genome.to_csv(cr.dna, filename)
                     break
-            
+
             pop.creatures = new_creatures
-                            
+
         self.assertNotEqual(fits[0], 0)
+
 
 unittest.main()

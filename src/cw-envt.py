@@ -4,15 +4,13 @@ import time
 import numpy as np
 import random
 import creature
+import genome
 
-p.connect(p.GUI)
-p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
 import random
 import pybullet as p
 import math
 
-import pybullet as p
 
 
 def make_mountain(num_rocks=100, max_size=0.25, arena_size=10, mountain_height=5):
@@ -132,10 +130,12 @@ def make_arena(arena_size=10, wall_height=1):
         basePosition=[-arena_size / 2, 0, wall_height / 2],
     )
 
+p.connect(p.GUI)
+p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
 p.setGravity(0, 0, -10)
 
-arena_size = 50
+arena_size = 30
 make_arena(arena_size=arena_size)
 
 # make_rocks(arena_size=arena_size)
@@ -152,13 +152,19 @@ mountain = p.loadURDF(
 
 # generate a random creature
 c = creature.Creature(gene_count=3)
+dna = genome.Genome.from_csv("elite_102.csv")
+c.dna = dna
+
 # save it to XML
 with open("test.urdf", "w") as f:
     f.write(c.to_xml())
 # load it into the sim
 cid = p.loadURDF("test.urdf", (0, 0, 10))
-
+# p.resetBasePositionAndOrientation(cid, [0.4, 0, 4.1], [0, 0, 0, 1])
+p.resetBasePositionAndOrientation(cid, [6, 0, 8], [0, 0, 0, 1])
 mode = p.VELOCITY_CONTROL
+
+
 
 while True:
     p.stepSimulation()
