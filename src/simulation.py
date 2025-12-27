@@ -1,6 +1,7 @@
 import pybullet as p
 import pybullet_data
 import numpy as np
+import os
 from multiprocessing import Pool
 
 
@@ -75,13 +76,46 @@ class Simulation:
         self.physicsClientId = p.connect(p.DIRECT)
         self.sim_id = sim_id
 
-    def run_creature(self, cr, iterations=2400):
+    def capture_screenshot(self, filename, target_pos=(0, 0, 0)):
+        """Capture a screenshot from the simulation."""
+        pid = self.physicsClientId
+        width, height = 640, 480
+
+        # Camera positioned to view the creature and mountain
+        view_matrix = p.computeViewMatrix(
+            cameraEyePosition=[8, 30, 6],
+            cameraTargetPosition=target_pos,
+            cameraUpVector=[0, 0, 1],
+            physicsClientId=pid,
+        )
+        proj_matrix = p.computeProjectionMatrixFOV(
+            fov=60, aspect=width / height, nearVal=0.1, farVal=100, physicsClientId=pid
+        )
+
+        _, _, rgb, _, _ = p.getCameraImage(
+            width,
+            height,
+            viewMatrix=view_matrix,
+            projectionMatrix=proj_matrix,
+            physicsClientId=pid,
+        )
+
+        # Convert flat buffer to numpy array and reshape
+        rgb = np.array(rgb, dtype=np.uint8).reshape(height, width, 4)
+
+        # Save using PIL (avoids cv2 BGR conversion)
+        from PIL import Image
+
+        img = Image.fromarray(rgb[:, :, :3])
+        img.save(filename)
+
+    def run_creature(self, cr, iterations=9600, debug=False):
         pid = self.physicsClientId
         p.resetSimulation(physicsClientId=pid)
         p.setPhysicsEngineParameter(enableFileCaching=0, physicsClientId=pid)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-        arena_size = 50
+        arena_size = 40
         make_arena(arena_size=arena_size)
 
         p.setGravity(0, 0, -10, physicsClientId=pid)
@@ -99,15 +133,18 @@ class Simulation:
             useFixedBase=1,
         )
 
-        xml_file = "temp" + str(self.sim_id) + ".urdf"
+        xml_file = f"/dev/shm/creature_{self.sim_id}_{os.getpid()}.urdf"
         xml_str = cr.to_xml()
         with open(xml_file, "w") as f:
             f.write(xml_str)
 
-        cid = p.loadURDF(xml_file, physicsClientId=pid)
+        try:
+            cid = p.loadURDF(xml_file, physicsClientId=pid)
+        finally:
+            os.remove(xml_file)
 
         p.resetBasePositionAndOrientation(
-            cid, [0, 0, 2.5], [0, 0, 0, 1], physicsClientId=pid
+            cid, [5, 5, 10], [0, 0, 0, 1], physicsClientId=pid
         )
 
         peak_xy = np.asarray([0.0, 0.0])
@@ -126,6 +163,12 @@ class Simulation:
 
             pos, orn = p.getBasePositionAndOrientation(cid, physicsClientId=pid)
             cr.update_position(pos)
+
+            # Capture screenshot every 240 steps (~1 sec at 240fps)
+            if debug and step % 240 == 0:
+                self.capture_screenshot(
+                    f"debug_{self.sim_id}_{step:04d}.png", target_pos=pos
+                )
             # print(cr.get_distance_travelled())
 
             if start_xy_dist is None:
@@ -177,6 +220,8 @@ class Simulation:
 class ThreadedSim:
     def __init__(self, pool_size):
         self.sims = [Simulation(i) for i in range(pool_size)]
+        self.pool_size = pool_size
+        self.pool = Pool(pool_size)
 
     @staticmethod
     def static_run_creature(sim, cr, iterations):
@@ -188,28 +233,12 @@ class ThreadedSim:
         pop is a Population object
         iterations is frames in pybullet to run for at 240fps
         """
-        pool_args = []
-        start_ind = 0
-        pool_size = len(self.sims)
-        while start_ind < len(pop.creatures):
-            this_pool_args = []
-            for i in range(start_ind, start_ind + pool_size):
-                if i == len(pop.creatures):  # the end
-                    break
-                # work out the sim ind
-                sim_ind = i % len(self.sims)
-                this_pool_args.append(
-                    [self.sims[sim_ind], pop.creatures[i], iterations]
-                )
-            pool_args.append(this_pool_args)
-            start_ind = start_ind + pool_size
+        all_args = [
+            (self.sims[i % len(self.sims)], cr, iterations)
+            for i, cr in enumerate(pop.creatures)
+        ]
+        pop.creatures = self.pool.starmap(ThreadedSim.static_run_creature, all_args)
 
-        new_creatures = []
-        for pool_argset in pool_args:
-            with Pool(pool_size) as p:
-                # it works on a copy of the creatures, so receive them
-                creatures = p.starmap(ThreadedSim.static_run_creature, pool_argset)
-                # and now put those creatures back into the main
-                # self.creatures array
-                new_creatures.extend(creatures)
-        pop.creatures = new_creatures
+    def close(self):
+        self.pool.close()
+        self.pool.join()

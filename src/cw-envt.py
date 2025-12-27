@@ -10,6 +10,7 @@ import genome
 import random
 import pybullet as p
 import math
+import sys
 
 
 
@@ -152,7 +153,7 @@ mountain = p.loadURDF(
 
 # generate a random creature
 c = creature.Creature(gene_count=3)
-dna = genome.Genome.from_csv("elite_102.csv")
+dna = genome.Genome.from_csv(f"elite_{sys.argv[1]}.csv")
 c.dna = dna
 
 # save it to XML
@@ -161,7 +162,7 @@ with open("test.urdf", "w") as f:
 # load it into the sim
 cid = p.loadURDF("test.urdf", (0, 0, 10))
 # p.resetBasePositionAndOrientation(cid, [0.4, 0, 4.1], [0, 0, 0, 1])
-p.resetBasePositionAndOrientation(cid, [6, 0, 8], [0, 0, 0, 1])
+p.resetBasePositionAndOrientation(cid, [6, 0, 9], [0, 0, 0, 1])
 mode = p.VELOCITY_CONTROL
 
 
@@ -177,7 +178,7 @@ while True:
 
     pos, orn = p.getBasePositionAndOrientation(cid)
     c.update_position(pos)
-    print(f"{c.get_distance_travelled()}")
+    # print(f"{c.get_distance_travelled()}")
     time.sleep(1.0 / 240)
 
 p.setRealTimeSimulation(1)

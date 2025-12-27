@@ -14,8 +14,8 @@ import numpy as np
 
 class TestGA(unittest.TestCase):
     def testBasicGA(self):
-        pop = population.Population(pop_size=10, gene_count=3)
-        sim = simulation.ThreadedSim(pool_size=7)
+        pop = population.Population(pop_size=30, gene_count=5)
+        sim = simulation.ThreadedSim(pool_size=8)
         # sim = simulation.Simulation()
 
         for iteration in range(1000):
@@ -61,6 +61,7 @@ class TestGA(unittest.TestCase):
 
             pop.creatures = new_creatures
 
+        sim.close()
         self.assertNotEqual(fits[0], 0)
 
 

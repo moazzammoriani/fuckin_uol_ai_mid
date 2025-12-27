@@ -4,7 +4,7 @@ from creature import Creature
 def main():
     sim = Simulation()
     c = Creature(1)
-    sim.run_creature(c)
+    sim.run_creature(c, debug=True)
 
     
 
