@@ -122,12 +122,12 @@ class Simulation:
 
         mountain_position = (0, 0, -1)  # Adjust as needed
         mountain_orientation = p.getQuaternionFromEuler((0, 0, 0))
-        p.setAdditionalSearchPath("./src/shapes/")
+        # p.setAdditionalSearchPath("./src/shapes/")
         # mountain = p.loadURDF("mountain.urdf", mountain_position, mountain_orientation, useFixedBase=1)
         # mountain = p.loadURDF("mountain_with_cubes.urdf", mountain_position, mountain_orientation, useFixedBase=1)
 
         mountain = p.loadURDF(
-            "gaussian_pyramid.urdf",
+            "./src/shapes/gaussian_pyramid.urdf",
             mountain_position,
             mountain_orientation,
             useFixedBase=1,
