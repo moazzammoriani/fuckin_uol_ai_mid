@@ -181,8 +181,12 @@ class Simulation:
             if step % 24 == 0:
                 self.update_motors(cid=cid, cr=cr)
 
-            pos, orn = p.getBasePositionAndOrientation(cid, physicsClientId=pid)
-            cr.update_position(pos)
+
+            # pybullet sometimes fails to move or even load complex creatures.
+            try:
+                pos, orn = p.getBasePositionAndOrientation(cid, physicsClientId=pid)
+            except pybullet.error:
+                return 
 
             # Capture screenshot every 240 steps (~1 sec at 240fps)
             if debug and step % 240 == 0:
