@@ -4,10 +4,15 @@ Genetic Algorithm for evolving creatures to climb a mountain.
 """
 
 import argparse
+import json
 import numpy as np
 import matplotlib.pyplot as plt
+from datetime import datetime
+from pathlib import Path
+
 import population
 import simulation
+from simulation import Environment
 import genome
 import creature
 
@@ -69,12 +74,38 @@ def run_ga(
     shrink_rate=0.25,
     grow_rate=0.1,
     use_fitness_score=False,
+    env=Environment.GAUSSIAN_PYRAMID,
 ):
     """Run the genetic algorithm."""
 
+    # Create output directory structure
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir = Path("data") / f"run_{timestamp}"
+    elites_dir = run_dir / "elites"
+    elites_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save hyperparameters
+    hyperparams = {
+        "pop_size": pop_size,
+        "gene_count": gene_count,
+        "pool_size": pool_size,
+        "generations": generations,
+        "iterations": iterations,
+        "mutation_rate": mutation_rate,
+        "shrink_rate": shrink_rate,
+        "grow_rate": grow_rate,
+        "use_fitness_score": use_fitness_score,
+        "env": env.value,
+        "timestamp": timestamp,
+    }
+    with open(run_dir / "hyperparameters.json", "w") as f:
+        json.dump(hyperparams, f, indent=2)
+
+    print(f"Output directory: {run_dir}")
     print(
         f"Starting GA: pop_size={pop_size}, gene_count={gene_count}, generations={generations}"
     )
+    print(f"Environment: {env.value}")
     print(
         f"Using {'fitness_score' if use_fitness_score else 'distance_travelled'} for selection"
     )
@@ -90,13 +121,13 @@ def run_ga(
             if has_plateaued(ngens=80, data=gen_data):
                 break
 
-            sim.eval_population(pop, iterations)
+            sim.eval_population(pop, iterations, env=env)
 
             # Get fitness values
             if use_fitness_score:
                 fits = [cr.fitness_score for cr in pop.creatures]
             else:
-                fits = [cr.get_distance_travelled() for cr in pop.creatures]
+                fits = [cr.fitness_score for cr in pop.creatures]
 
             links = [len(cr.get_expanded_links()) for cr in pop.creatures]
 
@@ -149,8 +180,8 @@ def run_ga(
             new_creatures[0] = elite
 
             # Save elite
-            filename = f"elite_{gen}.csv"
-            genome.Genome.to_csv(best_cr.dna, filename)
+            filename = elites_dir / f"elite_{gen}.csv"
+            genome.Genome.to_csv(best_cr.dna, str(filename))
 
             pop.creatures = new_creatures
 
@@ -161,7 +192,7 @@ def run_ga(
         print("Done. Pool closed.")
 
     # Plot fitness over generations
-    plot_fitness(gen_data)
+    plot_fitness(gen_data, filename=str(run_dir / "fitness_plot.png"))
 
 
 def main():
@@ -191,8 +222,18 @@ def main():
         action="store_true",
         help="Use fitness_score (climbing) instead of distance_travelled",
     )
+    parser.add_argument(
+        "--env",
+        type=str,
+        choices=["plane", "gaussian_pyramid"],
+        default="gaussian_pyramid",
+        help="Environment to run in (default: gaussian_pyramid)",
+    )
 
     args = parser.parse_args()
+
+    # Convert env string to Environment enum
+    env = Environment(args.env)
 
     run_ga(
         pop_size=args.pop_size,
@@ -204,6 +245,7 @@ def main():
         shrink_rate=args.shrink_rate,
         grow_rate=args.grow_rate,
         use_fitness_score=args.use_fitness_score,
+        env=env,
     )
 
 

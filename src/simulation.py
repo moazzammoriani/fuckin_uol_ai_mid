@@ -2,7 +2,13 @@ import pybullet as p
 import pybullet_data
 import numpy as np
 import os
+from enum import Enum
 from multiprocessing import Pool
+
+
+class Environment(Enum):
+    PLANE = "plane"
+    GAUSSIAN_PYRAMID = "gaussian_pyramid"
 
 
 def make_arena(arena_size=10, wall_height=1):
@@ -76,6 +82,26 @@ class Simulation:
         self.physicsClientId = p.connect(p.DIRECT)
         self.sim_id = sim_id
 
+    def _setup_plane(self):
+        """Simple infinite plane - minimal environment."""
+        pid = self.physicsClientId
+        plane_shape = p.createCollisionShape(p.GEOM_PLANE, physicsClientId=pid)
+        p.createMultiBody(plane_shape, plane_shape, physicsClientId=pid)
+
+    def _setup_gaussian_pyramid(self):
+        """Arena with walls + gaussian pyramid mountain."""
+        pid = self.physicsClientId
+        make_arena(arena_size=40)
+        mountain_position = (0, 0, -1)
+        mountain_orientation = p.getQuaternionFromEuler((0, 0, 0))
+        p.loadURDF(
+            "./src/shapes/gaussian_pyramid.urdf",
+            mountain_position,
+            mountain_orientation,
+            useFixedBase=1,
+            physicsClientId=pid,
+        )
+
     def capture_screenshot(self, filename, target_pos=(0, 0, 0)):
         """Capture a screenshot from the simulation."""
         pid = self.physicsClientId
@@ -109,29 +135,23 @@ class Simulation:
         img = Image.fromarray(rgb[:, :, :3])
         img.save(filename)
 
-    def run_creature(self, cr, iterations=9600, debug=False):
+    def run_creature(self, cr, iterations=9600, debug=False, env=Environment.GAUSSIAN_PYRAMID):
         pid = self.physicsClientId
         p.resetSimulation(physicsClientId=pid)
         p.setPhysicsEngineParameter(enableFileCaching=0, physicsClientId=pid)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-        arena_size = 40
-        make_arena(arena_size=arena_size)
-
         p.setGravity(0, 0, -10, physicsClientId=pid)
 
-        mountain_position = (0, 0, -1)  # Adjust as needed
-        mountain_orientation = p.getQuaternionFromEuler((0, 0, 0))
-        # p.setAdditionalSearchPath("./src/shapes/")
-        # mountain = p.loadURDF("mountain.urdf", mountain_position, mountain_orientation, useFixedBase=1)
-        # mountain = p.loadURDF("mountain_with_cubes.urdf", mountain_position, mountain_orientation, useFixedBase=1)
-
-        mountain = p.loadURDF(
-            "./src/shapes/gaussian_pyramid.urdf",
-            mountain_position,
-            mountain_orientation,
-            useFixedBase=1,
-        )
+        # Setup environment and determine spawn position
+        if env == Environment.PLANE:
+            self._setup_plane()
+            spawn_pos = [0, 0, 2.5]
+        elif env == Environment.GAUSSIAN_PYRAMID:
+            self._setup_gaussian_pyramid()
+            spawn_pos = [5, 5, 10]
+        else:
+            raise ValueError(f"Unknown environment: {env}")
 
         xml_file = f"/dev/shm/creature_{self.sim_id}_{os.getpid()}.urdf"
         xml_str = cr.to_xml()
@@ -144,7 +164,7 @@ class Simulation:
             os.remove(xml_file)
 
         p.resetBasePositionAndOrientation(
-            cid, [5, 5, 10], [0, 0, 0, 1], physicsClientId=pid
+            cid, spawn_pos, [0, 0, 0, 1], physicsClientId=pid
         )
 
         peak_xy = np.asarray([0.0, 0.0])
@@ -224,17 +244,18 @@ class ThreadedSim:
         self.pool = Pool(pool_size)
 
     @staticmethod
-    def static_run_creature(sim, cr, iterations):
-        sim.run_creature(cr, iterations)
+    def static_run_creature(sim, cr, iterations, env):
+        sim.run_creature(cr, iterations, env=env)
         return cr
 
-    def eval_population(self, pop, iterations):
+    def eval_population(self, pop, iterations, env=Environment.GAUSSIAN_PYRAMID):
         """
         pop is a Population object
         iterations is frames in pybullet to run for at 240fps
+        env is the Environment to run in
         """
         all_args = [
-            (self.sims[i % len(self.sims)], cr, iterations)
+            (self.sims[i % len(self.sims)], cr, iterations, env)
             for i, cr in enumerate(pop.creatures)
         ]
         pop.creatures = self.pool.starmap(ThreadedSim.static_run_creature, all_args)
