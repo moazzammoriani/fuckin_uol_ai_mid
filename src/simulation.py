@@ -168,8 +168,8 @@ class Simulation:
         )
 
         peak_xy = np.asarray([0.0, 0.0])
-        base_z = 0.0
         start_xy_dist = None
+        min_z = 1e9
         best_z = -1e9
         height_sum = 0.0
         fell = False
@@ -198,17 +198,18 @@ class Simulation:
             if start_xy_dist is None:
                 start_xy_dist = np.linalg.norm(np.asarray(pos[:2]) - peak_xy)
 
+            min_z = min(min_z, pos[2])
             best_z = max(best_z, pos[2])
             height_sum += pos[2]
             xy_dist = np.linalg.norm(np.asarray(pos[:2]) - peak_xy)
             steps_run += 1
 
-            if pos[2] < base_z - 0.5:
+            if pos[2] < -0.5:
                 fell = True
                 break
 
         steps_run = max(1, steps_run)
-        climb_score = max(0.0, best_z - base_z)
+        climb_score = max(0.0, best_z - min_z)
         approach_score = max(
             0.0, (start_xy_dist or 0.0) - (xy_dist if xy_dist is not None else 0.0)
         )

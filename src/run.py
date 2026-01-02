@@ -4,6 +4,7 @@ Genetic Algorithm for evolving creatures to climb a mountain.
 """
 
 import argparse
+import csv
 import json
 import numpy as np
 import matplotlib.pyplot as plt
@@ -39,6 +40,21 @@ def has_plateaued(ngens: int, data: list[Gen]):
     return has_plateaued
 
 
+def save_generation_data(gen_data: list[Gen], filename="generations.csv"):
+    """Save generation data to CSV."""
+    if not gen_data:
+        print("No data to save")
+        return
+
+    with open(filename, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["generation", "best_fitness", "mean_fitness", "avg_links"])
+        for g in gen_data:
+            writer.writerow([g.idx, g.best, g.mean, g.navg_links])
+
+    print(f"Saved generation data to {filename}")
+
+
 def plot_fitness(gen_data: list[Gen], filename="fitness_plot.png"):
     """Plot best and mean fitness over generations."""
     if not gen_data:
@@ -69,7 +85,7 @@ def run_ga(
     gene_count=5,
     pool_size=8,
     generations=1000,
-    iterations=2400,
+    iterations=4800,
     mutation_rate=0.1,
     shrink_rate=0.25,
     grow_rate=0.1,
@@ -127,7 +143,7 @@ def run_ga(
             if use_fitness_score:
                 fits = [cr.fitness_score for cr in pop.creatures]
             else:
-                fits = [cr.fitness_score for cr in pop.creatures]
+                fits = [cr.get_distance_travelled() for cr in pop.creatures]
 
             links = [len(cr.get_expanded_links()) for cr in pop.creatures]
 
@@ -191,7 +207,8 @@ def run_ga(
         sim.close()
         print("Done. Pool closed.")
 
-    # Plot fitness over generations
+    # Save generation data and plot
+    save_generation_data(gen_data, filename=str(run_dir / "generations.csv"))
     plot_fitness(gen_data, filename=str(run_dir / "fitness_plot.png"))
 
 
