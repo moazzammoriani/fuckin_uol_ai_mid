@@ -89,7 +89,7 @@ def run_ga(
     mutation_rate=0.1,
     shrink_rate=0.25,
     grow_rate=0.1,
-    use_fitness_score=False,
+    use_fitness_score=True,
     env=Environment.GAUSSIAN_PYRAMID,
 ):
     """Run the genetic algorithm."""
@@ -134,8 +134,8 @@ def run_ga(
 
     try:
         for gen in range(generations):
-            if has_plateaued(ngens=80, data=gen_data):
-                break
+            # if has_plateaued(ngens=80, data=gen_data):
+            #     break
 
             sim.eval_population(pop, iterations, env=env)
 
@@ -261,7 +261,8 @@ def main():
         mutation_rate=args.mutation_rate,
         shrink_rate=args.shrink_rate,
         grow_rate=args.grow_rate,
-        use_fitness_score=args.use_fitness_score,
+        # use_fitness_score=args.use_fitness_score,
+        use_fitness_score=True,
         env=env,
     )
 
