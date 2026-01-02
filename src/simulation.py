@@ -185,7 +185,7 @@ class Simulation:
             # pybullet sometimes fails to move or even load complex creatures.
             try:
                 pos, orn = p.getBasePositionAndOrientation(cid, physicsClientId=pid)
-            except pybullet.error:
+            except Exception as e:
                 return 
 
             # Capture screenshot every 240 steps (~1 sec at 240fps)
