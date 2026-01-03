@@ -135,7 +135,9 @@ class Simulation:
         img = Image.fromarray(rgb[:, :, :3])
         img.save(filename)
 
-    def run_creature(self, cr, iterations=9600, debug=False, env=Environment.GAUSSIAN_PYRAMID):
+    def run_creature(
+        self, cr, iterations=9600, debug=False, env=Environment.GAUSSIAN_PYRAMID
+    ):
         pid = self.physicsClientId
         p.resetSimulation(physicsClientId=pid)
         p.setPhysicsEngineParameter(enableFileCaching=0, physicsClientId=pid)
@@ -181,12 +183,11 @@ class Simulation:
             if step % 24 == 0:
                 self.update_motors(cid=cid, cr=cr)
 
-
             # pybullet sometimes fails to move or even load complex creatures.
             try:
                 pos, orn = p.getBasePositionAndOrientation(cid, physicsClientId=pid)
             except Exception as e:
-                return 
+                return
 
             # Capture screenshot every 240 steps (~1 sec at 240fps)
             if debug and step % 240 == 0:
@@ -208,16 +209,17 @@ class Simulation:
                 fell = True
                 break
 
+        if fell:
+            cr.fitness_score = 0
+            return
+
         steps_run = max(1, steps_run)
         climb_score = max(0.0, best_z - min_z)
         approach_score = max(
             0.0, (start_xy_dist or 0.0) - (xy_dist if xy_dist is not None else 0.0)
         )
         height_time = height_sum / steps_run
-        penalty = 1.0 if fell else 0.0
-        cr.fitness_score = (
-            climb_score + 0.5 * approach_score + 0.1 * height_time - penalty
-        )
+        cr.fitness_score = climb_score + 0.5 * approach_score + 0.1 * height_time
 
     def update_motors(self, cid, cr):
         """
