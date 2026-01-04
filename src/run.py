@@ -6,6 +6,7 @@ Genetic Algorithm for evolving creatures to climb a mountain.
 import argparse
 import csv
 import json
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -89,6 +90,7 @@ def run_ga(
     mutation_rate=0.1,
     shrink_rate=0.25,
     grow_rate=0.1,
+    graft_rate=0.3,
     active_mutations=None,
     use_fitness_score=True,
     env=Environment.GAUSSIAN_PYRAMID,
@@ -114,6 +116,7 @@ def run_ga(
         "mutation_rate": mutation_rate,
         "shrink_rate": shrink_rate,
         "grow_rate": grow_rate,
+        "graft_rate": graft_rate,
         "mutations": active_mutations,
         "use_fitness_score": use_fitness_score,
         "env": env.value,
@@ -185,7 +188,10 @@ def run_ga(
                 p1 = pop.creatures[p1_ind]
                 p2 = pop.creatures[p2_ind]
 
-                dna = genome.Genome.crossover(p1.dna, p2.dna)
+                if random.random() < graft_rate:
+                    dna = genome.Genome.grafting_crossover(p1.dna, p2.dna)
+                else:
+                    dna = genome.Genome.crossover(p1.dna, p2.dna)
                 if "gaussian" in active_mutations:
                     dna = genome.Genome.gaussian_mutate(dna, rate=mutation_rate)
                 if "point" in active_mutations:
@@ -248,6 +254,9 @@ def main():
         "--grow-rate", type=float, default=0.1, help="Grow mutation rate"
     )
     parser.add_argument(
+        "--graft-rate", type=float, default=0.3, help="Probability of grafting crossover vs regular crossover"
+    )
+    parser.add_argument(
         "--mutations",
         nargs="+",
         choices=["gaussian", "point", "shrink", "grow"],
@@ -281,6 +290,7 @@ def main():
         mutation_rate=args.mutation_rate,
         shrink_rate=args.shrink_rate,
         grow_rate=args.grow_rate,
+        graft_rate=args.graft_rate,
         active_mutations=args.mutations,
         # use_fitness_score=args.use_fitness_score,
         use_fitness_score=True,

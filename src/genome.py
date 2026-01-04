@@ -135,6 +135,30 @@ class Genome:
         return g3
 
     @staticmethod
+    def grafting_crossover(g1, g2):
+        """Graft a single gene from g2 onto g1."""
+        if len(g2) < 1:
+            return copy.copy(g1)
+
+        spec = Genome.get_gene_spec()
+        parent_idx = spec["joint-parent"]["ind"]
+
+        # Pick a random gene from g2
+        graft_idx = random.randint(0, len(g2) - 1)
+        graft_gene = copy.copy(g2[graft_idx])
+
+        # Pick where to attach in g1
+        attach_point = random.randint(0, len(g1) - 1)
+
+        # Remap joint-parent to point to attach_point
+        new_parent_val = (attach_point + 0.5) / (len(g1) + 1)
+        graft_gene[parent_idx] = min(0.9999, max(0.0, new_parent_val))
+
+        # Append to child
+        child = np.append(copy.copy(g1), [graft_gene], axis=0)
+        return child
+
+    @staticmethod
     def point_mutate(genome, rate, amount):
         new_genome = copy.copy(genome)
         for gene in new_genome:
