@@ -251,7 +251,7 @@ def main():
         "--mutations",
         nargs="+",
         choices=["gaussian", "point", "shrink", "grow"],
-        default=["guassian"],
+        default=["gaussian"],
         help="Mutation operators to apply in order",
     )
     parser.add_argument(
