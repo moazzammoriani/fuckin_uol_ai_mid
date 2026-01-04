@@ -169,14 +169,10 @@ class Simulation:
             cid, spawn_pos, [0, 0, 0, 1], physicsClientId=pid
         )
 
-        peak_xy = np.asarray([0.0, 0.0])
-        start_xy_dist = None
-        min_z = 1e9
-        best_z = -1e9
-        height_sum = 0.0
-        fell = False
-        xy_dist = None
+        target = np.array([0.4, 0.0, 4.1])  # peak of the mountain
+        dist_sum = 0.0
         steps_run = 0
+        fell = False
 
         for step in range(iterations):
             p.stepSimulation(physicsClientId=pid)
@@ -194,15 +190,8 @@ class Simulation:
                 self.capture_screenshot(
                     f"debug_{self.sim_id}_{step:04d}.png", target_pos=pos
                 )
-            # print(cr.get_distance_travelled())
-
-            if start_xy_dist is None:
-                start_xy_dist = np.linalg.norm(np.asarray(pos[:2]) - peak_xy)
-
-            min_z = min(min_z, pos[2])
-            best_z = max(best_z, pos[2])
-            height_sum += pos[2]
-            xy_dist = np.linalg.norm(np.asarray(pos[:2]) - peak_xy)
+            dist = np.linalg.norm(np.array(pos) - target)
+            dist_sum += dist
             steps_run += 1
 
             if pos[2] < -0.5:
@@ -213,13 +202,8 @@ class Simulation:
             cr.fitness_score = 0
             return
 
-        steps_run = max(1, steps_run)
-        climb_score = max(0.0, best_z - min_z)
-        approach_score = max(
-            0.0, (start_xy_dist or 0.0) - (xy_dist if xy_dist is not None else 0.0)
-        )
-        height_time = height_sum / steps_run
-        cr.fitness_score = climb_score + 0.5 * approach_score + 0.1 * height_time
+        avg_dist = dist_sum / max(1, steps_run)
+        cr.fitness_score = 1.0 / (1.0 + avg_dist)
 
     def update_motors(self, cid, cr):
         """

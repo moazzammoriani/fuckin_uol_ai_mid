@@ -5,12 +5,15 @@
 - Perhaps I can change the function for the motion of the robot
 
 ## Plan
-- naive, with same pop size but new fitness func 5*100k gens
-- change pop size to 50-100
-- change crossover,
-- change selection 
+## Hyperparam fiddling
+- ~naive, with same pop size but new fitness func~
+- ~change pop size to 50-100~
 - change mutation 
+Edit operators:
+    - change crossover,
+    - change selection 
 
+## Other
 - environment variation 
 - scaffolding fitness func with env variation and friction intro
 - new morphology 
