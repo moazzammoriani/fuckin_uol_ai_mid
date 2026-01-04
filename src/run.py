@@ -89,6 +89,7 @@ def run_ga(
     mutation_rate=0.1,
     shrink_rate=0.25,
     grow_rate=0.1,
+    active_mutations=None,
     use_fitness_score=True,
     env=Environment.GAUSSIAN_PYRAMID,
 ):
@@ -100,6 +101,9 @@ def run_ga(
     elites_dir = run_dir / "elites"
     elites_dir.mkdir(parents=True, exist_ok=True)
 
+    if active_mutations is None:
+        active_mutations = ["point", "shrink", "grow"]
+
     # Save hyperparameters
     hyperparams = {
         "pop_size": pop_size,
@@ -110,6 +114,7 @@ def run_ga(
         "mutation_rate": mutation_rate,
         "shrink_rate": shrink_rate,
         "grow_rate": grow_rate,
+        "mutations": active_mutations,
         "use_fitness_score": use_fitness_score,
         "env": env.value,
         "timestamp": timestamp,
@@ -125,6 +130,7 @@ def run_ga(
     print(
         f"Using {'fitness_score' if use_fitness_score else 'distance_travelled'} for selection"
     )
+    print(f"Active mutations: {', '.join(active_mutations)}")
     print("-" * 60)
 
     pop = population.Population(pop_size=pop_size, gene_count=gene_count)
@@ -180,9 +186,16 @@ def run_ga(
                 p2 = pop.creatures[p2_ind]
 
                 dna = genome.Genome.crossover(p1.dna, p2.dna)
-                dna = genome.Genome.point_mutate(dna, rate=mutation_rate, amount=0.25)
-                dna = genome.Genome.shrink_mutate(dna, rate=shrink_rate)
-                dna = genome.Genome.grow_mutate(dna, rate=grow_rate)
+                if "gaussian" in active_mutations:
+                    dna = genome.Genome.gaussian_mutate(dna, rate=mutation_rate)
+                if "point" in active_mutations:
+                    dna = genome.Genome.point_mutate(
+                        dna, rate=mutation_rate, amount=0.25
+                    )
+                if "shrink" in active_mutations:
+                    dna = genome.Genome.shrink_mutate(dna, rate=shrink_rate)
+                if "grow" in active_mutations:
+                    dna = genome.Genome.grow_mutate(dna, rate=grow_rate)
 
                 cr = creature.Creature(1)
                 cr.update_dna(dna)
@@ -235,6 +248,13 @@ def main():
         "--grow-rate", type=float, default=0.1, help="Grow mutation rate"
     )
     parser.add_argument(
+        "--mutations",
+        nargs="+",
+        choices=["gaussian", "point", "shrink", "grow"],
+        default=["guassian"],
+        help="Mutation operators to apply in order",
+    )
+    parser.add_argument(
         "--use-fitness-score",
         action="store_true",
         help="Use fitness_score (climbing) instead of distance_travelled",
@@ -261,6 +281,7 @@ def main():
         mutation_rate=args.mutation_rate,
         shrink_rate=args.shrink_rate,
         grow_rate=args.grow_rate,
+        active_mutations=args.mutations,
         # use_fitness_score=args.use_fitness_score,
         use_fitness_score=True,
         env=env,
