@@ -29,7 +29,7 @@ class Motor:
         if self.motor_type == MotorType.SINE:
             output = np.sin(self.phase)
         
-        return output 
+        return output * self.amp
 
 class Creature:
     def __init__(self, gene_count):
