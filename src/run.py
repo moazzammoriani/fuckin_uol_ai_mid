@@ -86,11 +86,12 @@ def run_ga(
     gene_count=5,
     pool_size=8,
     generations=1000,
-    iterations=4800,
+    iterations=2400,
     mutation_rate=0.1,
     shrink_rate=0.25,
     grow_rate=0.1,
     graft_rate=0.3,
+    max_genes=7,
     active_mutations=None,
     use_fitness_score=True,
     env=Environment.GAUSSIAN_PYRAMID,
@@ -117,6 +118,7 @@ def run_ga(
         "shrink_rate": shrink_rate,
         "grow_rate": grow_rate,
         "graft_rate": graft_rate,
+        "max_genes": max_genes,
         "mutations": active_mutations,
         "use_fitness_score": use_fitness_score,
         "env": env.value,
@@ -189,7 +191,7 @@ def run_ga(
                 p2 = pop.creatures[p2_ind]
 
                 if random.random() < graft_rate:
-                    dna = genome.Genome.grafting_crossover(p1.dna, p2.dna)
+                    dna = genome.Genome.grafting_crossover(p1.dna, p2.dna, max_genes=max_genes)
                 else:
                     dna = genome.Genome.crossover(p1.dna, p2.dna)
                 if "gaussian" in active_mutations:
@@ -257,10 +259,13 @@ def main():
         "--graft-rate", type=float, default=0.3, help="Probability of grafting crossover vs regular crossover"
     )
     parser.add_argument(
+        "--max-genes", type=int, default=7, help="Maximum number of genes per creature"
+    )
+    parser.add_argument(
         "--mutations",
         nargs="+",
         choices=["gaussian", "point", "shrink", "grow"],
-        default=["gaussian"],
+        default=["gaussian", "shrink"],
         help="Mutation operators to apply in order",
     )
     parser.add_argument(
@@ -291,6 +296,7 @@ def main():
         shrink_rate=args.shrink_rate,
         grow_rate=args.grow_rate,
         graft_rate=args.graft_rate,
+        max_genes=args.max_genes,
         active_mutations=args.mutations,
         # use_fitness_score=args.use_fitness_score,
         use_fitness_score=True,

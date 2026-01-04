@@ -66,7 +66,7 @@ class Genome:
                 sibling_ind = sibling_ind + 1
                 c_copy = copy.copy(c)
                 c_copy.parent_name = uniq_parent_name
-                uniq_name = c_copy.name + str(len(exp_links))
+                uniq_name = c_copy.name + "_" + str(len(exp_links))
                 # print("exp: ", c.name, " -> ", uniq_name)
                 c_copy.name = uniq_name
                 c_copy.sibling_ind = sibling_ind
@@ -135,9 +135,13 @@ class Genome:
         return g3
 
     @staticmethod
-    def grafting_crossover(g1, g2):
+    def grafting_crossover(g1, g2, max_genes=15):
         """Graft a single gene from g2 onto g1."""
         if len(g2) < 1:
+            return copy.copy(g1)
+
+        # Don't graft if already at max size
+        if len(g1) >= max_genes:
             return copy.copy(g1)
 
         spec = Genome.get_gene_spec()
